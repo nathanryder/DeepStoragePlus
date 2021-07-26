@@ -28,9 +28,9 @@ public class SorterUpdateManager {
                 if (!DeepStoragePlus.recentSortCalls.containsKey(inv.getLocation())) {
                     return;
                 }
-                if (System.currentTimeMillis() - DeepStoragePlus.recentSortCalls.get(inv.getLocation()) < minTimeSinceLast) {
-                    return;
-                }
+//                if (System.currentTimeMillis() - DeepStoragePlus.recentSortCalls.get(inv.getLocation()) < minTimeSinceLast) {
+//                    return;
+//                }
                 if(SorterManager.sortItems(inv)) {
                     DeepStoragePlus.recentSortCalls.put(inv.getLocation(), System.currentTimeMillis());
                 }

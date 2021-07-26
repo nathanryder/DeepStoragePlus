@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 
 public class SorterManager {
 
-    DeepStoragePlus main;
+    static DeepStoragePlus main;
     public SorterManager(DeepStoragePlus plugin) {
         main = plugin;
     }
@@ -143,7 +143,7 @@ public class SorterManager {
         return success;
     }
 
-    private static Set<Material> getMaterialsToSort(Inventory sorterInventory) {
+    public static Set<Material> getMaterialsToSort(Inventory sorterInventory) {
         Set<Material> materialsToSort = new HashSet<>();
         for (int i = 0; i < 18; i++) { // Get each unique item type we're trying to sort
             ItemStack item = sorterInventory.getItem(i);
@@ -154,7 +154,7 @@ public class SorterManager {
         return materialsToSort;
     }
 
-    private static Map<Material, Set<Inventory>> getDSUsWithMaterial(Set<Inventory> dsuInventories, Set<Material> materials) {
+    public static Map<Material, Set<Inventory>> getDSUsWithMaterial(Set<Inventory> dsuInventories, Set<Material> materials) {
         // Get the DSUs that contain those materials
         Map<Material, Set<Inventory>> containingDSUs = new HashMap<>();
         for (Material material : materials) {
@@ -174,7 +174,7 @@ public class SorterManager {
      * @param inv
      * @return
      */
-    private static List<Location> getLinkedLocations(Inventory inv) {
+    public static List<Location> getLinkedLocations(Inventory inv) {
         List<Location> locations = getLinkedLocations(inv, new ArrayList<>());
         for (int i = 0; i < locations.size(); i++) {
             // Check if this location has another sorter
@@ -193,7 +193,16 @@ public class SorterManager {
         for (int i = 27; i < 54; i++) {
             ItemStack item = inv.getItem(i);
             if (item != null) { // Only link modules should be possible in these slots
-                getLinkModuleLocation(item).ifPresent(x -> {if (!locations.contains(x)) newLocations.add(x);});
+                Optional<Location> loc = getLinkModuleLocation(item);
+
+                if (loc.isPresent()) {
+                    Location x = loc.get();
+
+                    if (!locations.contains(x)) {
+                        newLocations.add(x);
+                    }
+
+                }
             }
         }
         return newLocations;

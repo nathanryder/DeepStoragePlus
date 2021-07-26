@@ -7,10 +7,12 @@ import me.darkolythe.deepstorageplus.dsu.managers.SorterManager;
 import me.darkolythe.deepstorageplus.utils.LanguageManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.block.Chest;
-import org.bukkit.block.Container;
+import org.bukkit.block.Hopper;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -18,13 +20,12 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.DoubleChestInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 import static me.darkolythe.deepstorageplus.dsu.StorageUtils.hasNoMeta;
 import static me.darkolythe.deepstorageplus.dsu.StorageUtils.stringToMat;
@@ -122,6 +123,53 @@ public class IOListener implements Listener {
                     main.sorterUpdateManager.sortItems(IOInv, DeepStoragePlus.minTimeSinceLastSortHopper);
                 } else {
                     event.setCancelled(true);
+
+                    Set<Material> materialsToSort = SorterManager.getMaterialsToSort(initial);
+                    Map<Material, Set<Inventory>> containingDSUs;
+
+                    // Look for a cached set of linked DSUs
+                    if (DeepStoragePlus.sorterLocationCache.containsKey(initial.getLocation())) {
+                        Map<Material, Set<Location>> cachedDSULocations = DeepStoragePlus.sorterLocationCache.get(initial.getLocation());
+                        containingDSUs = new HashMap<>();
+                        for (Material material: cachedDSULocations.keySet()) {
+                            containingDSUs.put(material, SorterManager.getDSUInventories(cachedDSULocations.get(material)));
+                        }
+                    } else {
+                        // Get all linked DSUs
+                        Set<Location> locations = new HashSet(SorterManager.getLinkedLocations(initial));
+                        Set<Inventory> dsuInventories = SorterManager.getDSUInventories(locations);
+
+                        // Get the DSUs that contain those materials, organized by material
+                        containingDSUs = SorterManager.getDSUsWithMaterial(dsuInventories, materialsToSort);
+                    }
+
+
+                    for (int i = 0; i <= 17; i++) {
+
+                        ItemStack item = initial.getItem(i);
+                        if (item == null)
+                            continue;
+
+                        if (containingDSUs.get(item.getType()) == null)
+                            continue;
+
+                        if (containingDSUs.get(item.getType()).size() == 0) {
+
+                            DoubleChestInventory dci = (DoubleChestInventory) initial;
+                            BlockState left = dci.getLeftSide().getLocation().subtract(0, 1, 0).getBlock().getState();
+                            BlockState right = dci.getRightSide().getLocation().subtract(0, 1, 0).getBlock().getState();
+                            if (left instanceof Hopper) {
+                                Hopper hopper = (Hopper) left;
+                                initial.removeItem(item);
+                                hopper.getInventory().addItem(item);
+                            } else if (right instanceof Hopper) {
+                                Hopper hopper = (Hopper) right;
+                                initial.removeItem(item);
+                                hopper.getInventory().addItem(item);
+                            }
+                        }
+                    }
+
                 }
             }
         }
